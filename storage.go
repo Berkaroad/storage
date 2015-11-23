@@ -6,3 +6,4 @@ import (
 )
 
 var consoleLog = log.New(os.Stdout, "[storage] ", log.LstdFlags)
+var DEBUG bool = false

@@ -40,17 +40,22 @@ func (self *MemoryAppendOnlyStore) ReadAllRecords(startingFrom, maxCount int) []
 }
 
 func (self *MemoryAppendOnlyStore) Close() {
-	consoleLog.Printf("Close store.\n")
-
+	if DEBUG {
+		consoleLog.Printf("Close store.\n")
+	}
 }
 
 func (self *MemoryAppendOnlyStore) Reset() {
-	consoleLog.Printf("Reset store.\n")
+	if DEBUG {
+		consoleLog.Printf("Reset store.\n")
+	}
 	self.cache.Clear(func() {})
 }
 
 func (self *MemoryAppendOnlyStore) GetCurrentVersion() int {
-	consoleLog.Printf("Get current store version.\n")
+	if DEBUG {
+		consoleLog.Printf("Get current store version.\n")
+	}
 	return self.cache.StoreVersion
 }
 
@@ -88,7 +93,9 @@ func (self *lockingInMemoryCache) ConcurrentAppend(streamName string, data []byt
 
 	self.cacheByKey[streamName] = dataList
 	self.StoreVersion = newStoreVersion
-	consoleLog.Printf("Append to stream '%s' with v%d.\n", streamName, newStreamVersion)
+	if DEBUG {
+		consoleLog.Printf("Append to stream '%s' with v%d.\n", streamName, newStreamVersion)
+	}
 	return nil
 }
 
@@ -115,7 +122,9 @@ func (self *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersi
 			filterDataList = filterDataList[:maxCount]
 		}
 	}
-	consoleLog.Printf("Read stream '%s' after v%d, maxCount is %d.\n", streamName, afterStreamVersion, maxCount)
+	if DEBUG {
+		consoleLog.Printf("Read stream '%s' after v%d, maxCount is %d.\n", streamName, afterStreamVersion, maxCount)
+	}
 	return filterDataList
 }
 
@@ -138,7 +147,9 @@ func (self *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []Dat
 			filterDataList = filterDataList[:maxCount]
 		}
 	}
-	consoleLog.Printf("Read all after v%d, maxCount is %d.\n", afterStoreVersion, maxCount)
+	if DEBUG {
+		consoleLog.Printf("Read all after v%d, maxCount is %d.\n", afterStoreVersion, maxCount)
+	}
 	return filterDataList
 }
 
