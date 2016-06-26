@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// Memory AppendOnlyStorage
 type MemoryAppendOnlyStore struct {
 	isInitialized bool
 	cache         *lockingInMemoryCache
@@ -110,7 +111,8 @@ func (self *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersi
 		panic("maxCount must be more than zero.")
 	}
 
-	// no lock is needed.
+	defer self.locker.Unlock()
+	self.locker.Lock()
 	filterDataList := []DataWithKey{}
 	if dataList := self.cacheByKey[streamName]; dataList != nil && len(dataList) > 0 {
 		for _, item := range dataList {
@@ -136,6 +138,8 @@ func (self *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []Dat
 		panic("maxCount must be more than zero.")
 	}
 
+	defer self.locker.Unlock()
+	self.locker.Lock()
 	filterDataList := make([]DataWithKey, 0)
 	if dataList := self.cacheFull; dataList != nil && len(dataList) > 0 {
 		for _, item := range dataList {
