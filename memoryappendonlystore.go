@@ -1,63 +1,59 @@
-//
-// 内存追加存储
-// －－－－－－－－－－
-// 此存储主要用于测试
-//
 package storage
 
 import (
 	"sync"
 )
 
-// Memory AppendOnlyStorage
+// MemoryAppendOnlyStore is used for test.
+// For simulate appendonlystore.
 type MemoryAppendOnlyStore struct {
 	isInitialized bool
 	cache         *lockingInMemoryCache
 }
 
-func (self *MemoryAppendOnlyStore) InitFunc() interface{} {
+func (store *MemoryAppendOnlyStore) InitFunc() interface{} {
 	return func() {
-		if !self.isInitialized {
-			self.cache = &lockingInMemoryCache{cacheByKey: make(map[string][]DataWithKey, 0),
+		if !store.isInitialized {
+			store.cache = &lockingInMemoryCache{cacheByKey: make(map[string][]DataWithKey, 0),
 				cacheFull: []DataWithKey{},
 				locker:    new(sync.Mutex)}
 		}
-		self.isInitialized = true
+		store.isInitialized = true
 	}
 }
 
-func (self *MemoryAppendOnlyStore) Append(streamName string, data []byte, expectedStreamVersion int) error {
-	return self.cache.ConcurrentAppend(streamName, data, func(version, storeVersion int) {
+func (store *MemoryAppendOnlyStore) Append(streamName string, data []byte, expectedStreamVersion int) error {
+	return store.cache.ConcurrentAppend(streamName, data, func(version, storeVersion int) {
 		// commit
 	}, expectedStreamVersion)
 }
 
-func (self *MemoryAppendOnlyStore) ReadRecords(streamName string, startingFrom, maxCount int) []DataWithKey {
-	return self.cache.ReadStream(streamName, startingFrom, maxCount)
+func (store *MemoryAppendOnlyStore) ReadRecords(streamName string, startingFrom, maxCount int) []DataWithKey {
+	return store.cache.ReadStream(streamName, startingFrom, maxCount)
 }
 
-func (self *MemoryAppendOnlyStore) ReadAllRecords(startingFrom, maxCount int) []DataWithKey {
-	return self.cache.ReadAll(startingFrom, maxCount)
+func (store *MemoryAppendOnlyStore) ReadAllRecords(startingFrom, maxCount int) []DataWithKey {
+	return store.cache.ReadAll(startingFrom, maxCount)
 }
 
-func (self *MemoryAppendOnlyStore) Close() {
+func (store *MemoryAppendOnlyStore) Close() {
 	if DEBUG {
 		consoleLog.Printf("Close store.\n")
 	}
 }
 
-func (self *MemoryAppendOnlyStore) Reset() {
+func (store *MemoryAppendOnlyStore) Reset() {
 	if DEBUG {
 		consoleLog.Printf("Reset store.\n")
 	}
-	self.cache.Clear(func() {})
+	store.cache.Clear(func() {})
 }
 
-func (self *MemoryAppendOnlyStore) GetCurrentVersion() int {
+func (store *MemoryAppendOnlyStore) GetCurrentVersion() int {
 	if DEBUG {
 		consoleLog.Printf("Get current store version.\n")
 	}
-	return self.cache.StoreVersion
+	return store.cache.StoreVersion
 }
 
 type lockingInMemoryCache struct {
@@ -67,14 +63,14 @@ type lockingInMemoryCache struct {
 	locker       *sync.Mutex
 }
 
-func (self *lockingInMemoryCache) ConcurrentAppend(streamName string, data []byte, commit func(streamVersion, storeVersion int), expectedStreamVersion int) error {
-	defer self.locker.Unlock()
-	self.locker.Lock()
+func (cache *lockingInMemoryCache) ConcurrentAppend(streamName string, data []byte, commit func(streamVersion, storeVersion int), expectedStreamVersion int) error {
+	defer cache.locker.Unlock()
+	cache.locker.Lock()
 
-	dataList := self.cacheByKey[streamName]
+	dataList := cache.cacheByKey[streamName]
 	if dataList == nil {
-		self.cacheByKey[streamName] = []DataWithKey{}
-		dataList = self.cacheByKey[streamName]
+		cache.cacheByKey[streamName] = []DataWithKey{}
+		dataList = cache.cacheByKey[streamName]
 	}
 
 	actualStreamVersion := len(dataList)
@@ -84,23 +80,23 @@ func (self *lockingInMemoryCache) ConcurrentAppend(streamName string, data []byt
 		}
 	}
 	newStreamVersion := actualStreamVersion + 1
-	newStoreVersion := self.StoreVersion + 1
+	newStoreVersion := cache.StoreVersion + 1
 	commit(newStreamVersion, newStoreVersion)
 
 	// update in-memory cache only after real commit completed
 	dataWithKey := DataWithKey{Key: streamName, Data: data, StreamVersion: newStreamVersion, StoreVersion: newStoreVersion}
-	self.cacheFull = append(self.cacheFull, dataWithKey)
+	cache.cacheFull = append(cache.cacheFull, dataWithKey)
 	dataList = append(dataList, dataWithKey)
 
-	self.cacheByKey[streamName] = dataList
-	self.StoreVersion = newStoreVersion
+	cache.cacheByKey[streamName] = dataList
+	cache.StoreVersion = newStoreVersion
 	if DEBUG {
 		consoleLog.Printf("Append to stream '%s' with v%d.\n", streamName, newStreamVersion)
 	}
 	return nil
 }
 
-func (self *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersion, maxCount int) []DataWithKey {
+func (cache *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersion, maxCount int) []DataWithKey {
 	if streamName == "" {
 		panic("streamName is empty!")
 	}
@@ -111,10 +107,10 @@ func (self *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersi
 		panic("maxCount must be more than zero.")
 	}
 
-	defer self.locker.Unlock()
-	self.locker.Lock()
+	defer cache.locker.Unlock()
+	cache.locker.Lock()
 	filterDataList := []DataWithKey{}
-	if dataList := self.cacheByKey[streamName]; dataList != nil && len(dataList) > 0 {
+	if dataList := cache.cacheByKey[streamName]; dataList != nil && len(dataList) > 0 {
 		for _, item := range dataList {
 			if item.StreamVersion > afterStreamVersion {
 				filterDataList = append(filterDataList, item)
@@ -130,7 +126,7 @@ func (self *lockingInMemoryCache) ReadStream(streamName string, afterStreamVersi
 	return filterDataList
 }
 
-func (self *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []DataWithKey {
+func (cache *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []DataWithKey {
 	if afterStoreVersion < 0 {
 		panic("afterStoreVersion must be zero or greater.")
 	}
@@ -138,10 +134,10 @@ func (self *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []Dat
 		panic("maxCount must be more than zero.")
 	}
 
-	defer self.locker.Unlock()
-	self.locker.Lock()
-	filterDataList := make([]DataWithKey, 0)
-	if dataList := self.cacheFull; dataList != nil && len(dataList) > 0 {
+	defer cache.locker.Unlock()
+	cache.locker.Lock()
+	var filterDataList = make([]DataWithKey, 0)
+	if dataList := cache.cacheFull; dataList != nil && len(dataList) > 0 {
 		for _, item := range dataList {
 			if item.StoreVersion > afterStoreVersion {
 				filterDataList = append(filterDataList, item)
@@ -157,12 +153,12 @@ func (self *lockingInMemoryCache) ReadAll(afterStoreVersion, maxCount int) []Dat
 	return filterDataList
 }
 
-func (self *lockingInMemoryCache) Clear(executeWhenCommitting func()) {
-	defer self.locker.Unlock()
-	self.locker.Lock()
+func (cache *lockingInMemoryCache) Clear(executeWhenCommitting func()) {
+	defer cache.locker.Unlock()
+	cache.locker.Lock()
 
 	executeWhenCommitting()
-	self.cacheFull = []DataWithKey{}
-	self.cacheByKey = make(map[string][]DataWithKey, 0)
-	self.StoreVersion = 0
+	cache.cacheFull = []DataWithKey{}
+	cache.cacheByKey = make(map[string][]DataWithKey, 0)
+	cache.StoreVersion = 0
 }

@@ -1,3 +1,4 @@
+// Package storage provide several store interface.
 package storage
 
 import (
@@ -6,4 +7,6 @@ import (
 )
 
 var consoleLog = log.New(os.Stdout, "[storage] ", log.LstdFlags)
-var DEBUG bool = false
+
+// DEBUG is a switcher for debug
+var DEBUG = false
