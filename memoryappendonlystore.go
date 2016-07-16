@@ -23,19 +23,19 @@ func (store *MemoryAppendOnlyStore) InitFunc() interface{} {
 	}
 }
 
-// Append data with expected stream version by stream name
+// Append data by stream name, will check expected stream version
 func (store *MemoryAppendOnlyStore) Append(streamName string, data []byte, expectedStreamVersion int) error {
 	return store.cache.ConcurrentAppend(streamName, data, func(version, storeVersion int) {
 		// commit
 	}, expectedStreamVersion)
 }
 
-// ReadRecords is to read by stream name
+// ReadRecords is to read by stream name, starting from at least zero
 func (store *MemoryAppendOnlyStore) ReadRecords(streamName string, startingFrom, maxCount int) []DataWithKey {
 	return store.cache.ReadStream(streamName, startingFrom, maxCount)
 }
 
-// ReadAllRecords is to read all records
+// ReadAllRecords is to read all records, starting from at least zero
 func (store *MemoryAppendOnlyStore) ReadAllRecords(startingFrom, maxCount int) []DataWithKey {
 	return store.cache.ReadAll(startingFrom, maxCount)
 }

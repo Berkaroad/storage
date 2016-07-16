@@ -8,11 +8,11 @@ import (
 type AppendOnlyStore interface {
 	// Constructor
 	InitFunc() interface{}
-	// Append data with expected stream version by stream name
+	// Append data by stream name, will check expected stream version
 	Append(streamName string, data []byte, expectedStreamVersion int) error
-	// Read by stream name
+	// Read by stream name, starting from at least zero
 	ReadRecords(streamName string, startingFrom, maxCount int) []DataWithKey
-	// Read all
+	// Read all, starting from at least zero
 	ReadAllRecords(startingFrom, maxCount int) []DataWithKey
 	// Close and dispose
 	Close()
@@ -28,9 +28,9 @@ type DataWithKey struct {
 	Key string
 	// Data
 	Data []byte
-	// Stream version
+	// Stream version, start value is zero
 	StreamVersion int
-	// Store version
+	// Store version, start value is zero
 	StoreVersion int
 }
 
