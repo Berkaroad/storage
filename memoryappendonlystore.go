@@ -11,6 +11,7 @@ type MemoryAppendOnlyStore struct {
 	cache         *lockingInMemoryCache
 }
 
+// InitFunc is to simulate construction.
 func (store *MemoryAppendOnlyStore) InitFunc() interface{} {
 	return func() {
 		if !store.isInitialized {
@@ -22,26 +23,31 @@ func (store *MemoryAppendOnlyStore) InitFunc() interface{} {
 	}
 }
 
+// Append data with expected stream version by stream name
 func (store *MemoryAppendOnlyStore) Append(streamName string, data []byte, expectedStreamVersion int) error {
 	return store.cache.ConcurrentAppend(streamName, data, func(version, storeVersion int) {
 		// commit
 	}, expectedStreamVersion)
 }
 
+// ReadRecords is to read by stream name
 func (store *MemoryAppendOnlyStore) ReadRecords(streamName string, startingFrom, maxCount int) []DataWithKey {
 	return store.cache.ReadStream(streamName, startingFrom, maxCount)
 }
 
+// ReadAllRecords is to read all records
 func (store *MemoryAppendOnlyStore) ReadAllRecords(startingFrom, maxCount int) []DataWithKey {
 	return store.cache.ReadAll(startingFrom, maxCount)
 }
 
+// Close and dispose
 func (store *MemoryAppendOnlyStore) Close() {
 	if DEBUG {
 		consoleLog.Printf("Close store.\n")
 	}
 }
 
+// Reset store
 func (store *MemoryAppendOnlyStore) Reset() {
 	if DEBUG {
 		consoleLog.Printf("Reset store.\n")
@@ -49,6 +55,7 @@ func (store *MemoryAppendOnlyStore) Reset() {
 	store.cache.Clear(func() {})
 }
 
+// GetCurrentVersion is to get current global version
 func (store *MemoryAppendOnlyStore) GetCurrentVersion() int {
 	if DEBUG {
 		consoleLog.Printf("Get current store version.\n")
