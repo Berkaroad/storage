@@ -18,8 +18,8 @@ func (store *MemoryAppendOnlyStore) InitFunc() interface{} {
 			store.cache = &lockingInMemoryCache{cacheByKey: make(map[string][]DataWithKey, 0),
 				cacheFull: []DataWithKey{},
 				locker:    new(sync.Mutex)}
+			store.isInitialized = true
 		}
-		store.isInitialized = true
 	}
 }
 
