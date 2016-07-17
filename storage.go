@@ -1,4 +1,6 @@
-// Package storage provide several store interface.
+/*
+Package storage is to provide several store interface.
+*/
 package storage
 
 import (
