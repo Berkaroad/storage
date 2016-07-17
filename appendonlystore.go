@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// AppendOnlyStore is to append item in store.
+// AppendOnlyStore is a store to append item in store.
 type AppendOnlyStore interface {
 	// Constructor
 	InitFunc() interface{}
